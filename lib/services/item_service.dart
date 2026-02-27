@@ -93,6 +93,25 @@ class ItemService {
     return List<Map<String, dynamic>>.from(res);
   }
 
+  Future<List<Map<String, dynamic>>> fetchUserPosts() async {
+    final user = supabase.auth.currentUser;
+    if (user == null) return [];
+    final res = await supabase
+        .from('items')
+        .select()
+        .eq('user_id', user.id)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  Future<void> deleteItem(String id) async {
+    try {
+      await supabase.from('items').delete().eq('id', id);
+    } catch (e) {
+      print("Error deleting item: $e");
+    }
+  }
+
   Future<List<Map<String, dynamic>>> fetchRecentTwoByCategory(
       String category) async {
     try {

@@ -22,6 +22,26 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final SupabaseClient supabase = Supabase.instance.client;
+  final Map<String, String> _nameCache = {};
+
+  // FIX: Updated to use the 'name' column as seen in your screenshot
+  Future<String> _getUserName(String userId) async {
+    if (_nameCache.containsKey(userId)) return _nameCache[userId]!;
+    
+    try {
+      final data = await supabase
+          .from('profiles')
+          .select('name') // Changed from username to name
+          .eq('id', userId)
+          .maybeSingle();
+      
+      final name = data != null ? data['name'] ?? "User" : "User";
+      _nameCache[userId] = name;
+      return name;
+    } catch (e) {
+      return "User";
+    }
+  }
 
   void _sendMessage() async {
     final String msgText = _messageController.text.trim();
@@ -35,7 +55,7 @@ class _ChatScreenState extends State<ChatScreen> {
     try {
       await supabase.from('messages').insert({
         'item_id': widget.itemId,
-        'text': msgText, // Column name is 'text' based on your DB screenshot
+        'text': msgText,
         'sender_id': user.id,
         'receiver_id': widget.receiverId,
       });
@@ -53,85 +73,125 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 1,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
+        leading: const Padding(
+          padding: EdgeInsets.all(8.0),
           child: CircleAvatar(
-            backgroundColor: const Color(0xFFE8E0FF),
-            child: Icon(Icons.person, color: const Color(0xFF8E7CFF)),
+            backgroundColor: Color(0xFFE8E0FF),
+            child: Icon(Icons.person, color: Color(0xFF8E7CFF)),
           ),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Owner', style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
-            Text(widget.itemName, style: TextStyle(color: Colors.grey, fontSize: 12)),
+            FutureBuilder<String>(
+              future: _getUserName(widget.receiverId),
+              builder: (context, snapshot) {
+                return Text(
+                  snapshot.data ?? 'Chatting...',
+                  style: const TextStyle(
+                      color: Colors.black,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold),
+                );
+              },
+            ),
+            Text(widget.itemName,
+                style: const TextStyle(color: Colors.grey, fontSize: 12)),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close Chat', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('Close Chat',
+                style: TextStyle(color: Colors.redAccent)),
           ),
         ],
       ),
       body: Column(
         children: [
-          // This Expanded block prevents the "Red Screen" by giving the list room to grow
-          // Update this specific block in your ChatScreen.dart
-Expanded(
-  child: StreamBuilder<List<Map<String, dynamic>>>(
-    // 1. We listen to the 'messages' table
-    // 2. primaryKey must match your Supabase table's primary key (usually 'id')
-    stream: supabase
-        .from('messages')
-        .stream(primaryKey: ['id']) 
-        .eq('item_id', widget.itemId) // Filters messages for this specific item
-        .order('created_at', ascending: false),
-    builder: (context, snapshot) {
-      if (snapshot.hasError) {
-        return Center(child: Text("Error: ${snapshot.error}"));
-      }
+          Expanded(
+            child: StreamBuilder<List<Map<String, dynamic>>>(
+              stream: supabase
+                  .from('messages')
+                  .stream(primaryKey: ['id'])
+                  .eq('item_id', widget.itemId)
+                  .order('created_at', ascending: false),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) return Center(child: Text("Error: ${snapshot.error}"));
+                if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
-      if (snapshot.connectionState == ConnectionState.waiting) {
-        return const Center(child: CircularProgressIndicator());
-      }
+                final messages = snapshot.data ?? [];
+                if (messages.isEmpty) return const Center(child: Text("No messages yet. Say hi!"));
 
-      final messages = snapshot.data ?? [];
+                return ListView.builder(
+                  reverse: true,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    final String senderId = message['sender_id'];
+                    final bool isMe = senderId == currentUserId;
 
-      if (messages.isEmpty) {
-        return const Center(child: Text("No messages yet. Say hi!"));
-      }
+                    // --- INDIAN TIME (IST) FIX ---
+                    DateTime utcTime = DateTime.parse(message['created_at']);
+                    DateTime istTime = utcTime.add(const Duration(hours: 5, minutes: 30));
+                    
+                    String timestamp =
+                        "${istTime.hour % 12 == 0 ? 12 : istTime.hour % 12}:${istTime.minute.toString().padLeft(2, '0')} ${istTime.hour >= 12 ? 'PM' : 'AM'}";
 
-      return ListView.builder(
-        reverse: true, // Newest messages at the bottom
-        padding: const EdgeInsets.all(16),
-        itemCount: messages.length,
-        itemBuilder: (context, index) {
-          final isMe = messages[index]['sender_id'] == currentUserId;
-          return Align(
-            alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 6),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              decoration: BoxDecoration(
-                color: isMe ? const Color(0xFF8E7CFF) : const Color(0xFFE8E0FF),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                messages[index]['text'] ?? '',
-                style: TextStyle(color: isMe ? Colors.white : Colors.black87),
-              ),
+                    return Align(
+                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: FutureBuilder<String>(
+                              future: _getUserName(senderId),
+                              builder: (context, snapshot) {
+                                return Text(
+                                  snapshot.data ?? "...",
+                                  style: const TextStyle(fontSize: 10, color: Colors.black54),
+                                );
+                              },
+                            ),
+                          ),
+                          Container(
+                            margin: const EdgeInsets.symmetric(vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: isMe ? const Color(0xFF8E7CFF) : const Color(0xFFE8E0FF),
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(20),
+                                topRight: const Radius.circular(20),
+                                bottomLeft: Radius.circular(isMe ? 20 : 0),
+                                bottomRight: Radius.circular(isMe ? 0 : 20),
+                              ),
+                            ),
+                            child: Text(
+                              message['text'] ?? '',
+                              style: TextStyle(color: isMe ? Colors.white : Colors.black87),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8, left: 4, right: 4),
+                            child: Text(
+                              timestamp,
+                              style: const TextStyle(fontSize: 9, color: Colors.black38),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
             ),
-          );
-        },
-      );
-    },
-  ),
-),
+          ),
           // Input Area
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white),
+            decoration: const BoxDecoration(color: Colors.white),
             child: Row(
               children: [
                 Expanded(

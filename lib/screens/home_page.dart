@@ -102,7 +102,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         },
                       ),
                       const SizedBox(height: 15),
-
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: pickImageInsideDialog,
@@ -144,7 +143,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         ),
                       ),
                       const SizedBox(height: 15),
-
                       _dialogTextField('Title', Icons.title, titleController),
                       const SizedBox(height: 12),
                       _dialogTextField(
@@ -154,7 +152,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         maxLines: 3,
                       ),
                       const SizedBox(height: 12),
-
                       if (selectedType == 'Resell') ...[
                         _dialogTextField(
                           'Price',

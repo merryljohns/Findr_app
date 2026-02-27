@@ -1,8 +1,13 @@
 import 'dart:io';
+import 'package:findr_app/screens/Found_screen.dart';
+import 'package:findr_app/screens/Lost_screen.dart';
+import 'package:findr_app/screens/Resell_screen.dart';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/item_service.dart';
+// Import your screens here
+// import 'login_screen.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -176,8 +181,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
-  // --- REST OF YOUR ORIGINAL UI METHODS ---
-
   void _showAddItemDialog(BuildContext context) {
     String selectedType = 'Lost';
     Uint8List? webImage;
@@ -320,9 +323,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     String? imageUrl;
                     if (pickedFile != null) {
                       imageUrl = await ItemService().uploadImage(pickedFile!);
-                    } // lost/found/resell
-
-                    print("UPLOADED URL: $imageUrl");
+                    }
 
                     final error = await ItemService().createItem(
                       title: titleController.text.trim(),
@@ -479,7 +480,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 ),
               ),
 
-              // --- ADDED HORIZONTAL SCROLLING SECTIONS ---
+              // --- HORIZONTAL SCROLLING SECTIONS ---
               _buildHorizontalSection('Lost Items', 'lost'),
               _buildHorizontalSection('Found Items', 'found'),
               _buildHorizontalSection('Resell Items', 'resell'),
@@ -504,11 +505,31 @@ class _HomePageScreenState extends State<HomePageScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _navItem(Icons.home_rounded, 'Home', true),
-            _navItem(Icons.search_off_rounded, 'Lost', false),
+            _navItem(Icons.home_rounded, 'Home', true, () {
+              // Action for Home
+            }),
+            _navItem(Icons.search_off_rounded, 'Lost', false, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LostScreen()),
+              );
+              // Action for Lost - Navigate to your screen
+            }),
             const SizedBox(width: 40),
-            _navItem(Icons.inventory_2_outlined, 'Found', false),
-            _navItem(Icons.sell_outlined, 'Resell', false),
+            _navItem(Icons.inventory_2_outlined, 'Found', false, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FoundScreen()),
+              );
+              // Action for Found
+            }),
+            _navItem(Icons.sell_outlined, 'Resell', false, () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ResellScreen()),
+              );
+              // Action for Resell
+            }),
           ],
         ),
       ),
@@ -561,24 +582,29 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
-  Widget _navItem(IconData icon, String label, bool isActive) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: isActive ? const Color(0xFF8E7CFF) : Colors.black26,
-          size: 26,
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
+  Widget _navItem(
+      IconData icon, String label, bool isActive, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
             color: isActive ? const Color(0xFF8E7CFF) : Colors.black26,
+            size: 26,
           ),
-        ),
-      ],
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              color: isActive ? const Color(0xFF8E7CFF) : Colors.black26,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

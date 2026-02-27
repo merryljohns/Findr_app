@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/item_service.dart';
+import 'chat_screen.dart'; // Ensure this import matches your file structure
 
 class LostScreen extends StatefulWidget {
   const LostScreen({super.key});
@@ -277,7 +278,18 @@ class _LostScreenState extends State<LostScreen> {
                           ),
                           ElevatedButton.icon(
                             onPressed: () {
-                              // Action for chat - Logic goes here
+                              // NAVIGATION TO CHATSCREEN
+                              Navigator.pop(context); // Close the dialog first
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    itemId: item['id'].toString(), // Convert to string for the itemId
+                                    itemName: item['title'] ?? 'Lost Item',
+                                    receiverId: item['user_id'], // Pass the owner's ID
+                                  ),
+                                ),
+                              );
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF8E7CFF),

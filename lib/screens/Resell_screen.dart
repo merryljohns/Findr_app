@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/item_service.dart';
+import 'chat_screen.dart'; // Added ChatScreen import
 
 class ResellScreen extends StatefulWidget {
   const ResellScreen({super.key});
@@ -247,7 +248,20 @@ class _ResellScreenState extends State<ResellScreen> {
                                       color: Colors.black45,
                                       fontWeight: FontWeight.w600))),
                           ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              // Added navigation to ChatScreen
+                              Navigator.pop(context); // Close dialog
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    itemId: item['id'].toString(),
+                                    itemName: item['title'] ?? 'Resell Item',
+                                    receiverId: item['user_id'],
+                                  ),
+                                ),
+                              );
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF8E7CFF),
                               foregroundColor: Colors.white,

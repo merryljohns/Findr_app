@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/item_service.dart';
+import 'chat_screen.dart'; // Added ChatScreen import
 
 class FoundScreen extends StatefulWidget {
   const FoundScreen({super.key});
@@ -194,6 +195,7 @@ class _FoundScreenState extends State<FoundScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                // Image Section
                 ClipRRect(
                   borderRadius:
                       const BorderRadius.vertical(top: Radius.circular(30)),
@@ -237,6 +239,7 @@ class _FoundScreenState extends State<FoundScreen> {
                               height: 1.5,
                               color: Colors.black87)),
                       const SizedBox(height: 24),
+                      // Action Row
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -247,7 +250,20 @@ class _FoundScreenState extends State<FoundScreen> {
                                       color: Colors.black45,
                                       fontWeight: FontWeight.w600))),
                           ElevatedButton.icon(
-                            onPressed: () {},
+                            onPressed: () {
+                              // Navigation to ChatScreen logic
+                              Navigator.pop(context); // Close dialog
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatScreen(
+                                    itemId: item['id'].toString(),
+                                    itemName: item['title'] ?? 'Found Item',
+                                    receiverId: item['user_id'],
+                                  ),
+                                ),
+                              );
+                            },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF8E7CFF),
                               foregroundColor: Colors.white,

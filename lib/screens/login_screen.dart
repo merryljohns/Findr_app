@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,31 +11,38 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
 
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _auth = AuthService();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Diagonal Gradient Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color.fromARGB(255, 212, 142, 248), // Pastel Lilac/Blue
+                  Color.fromARGB(255, 212, 142, 248),
                   Color.fromARGB(255, 251, 161, 207),
-                  // Pastel Pink/Peach
                 ],
               ),
             ),
           ),
 
-          // 2. Main Content
           SafeArea(
             child: Column(
               children: [
-                // Custom Back Button
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Align(
@@ -54,8 +62,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const Spacer(), // Pushes the white container to the bottom
-                // 3. White Container with Rounded Edges
+                const Spacer(),
+
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -88,16 +96,20 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 30),
 
-                      // Email Field
-                      _buildTextField(hint: 'Enter email'),
+                      _buildTextField(
+                        hint: 'Enter email',
+                        controller: _emailController,
+                      ),
                       const SizedBox(height: 15),
 
-                      // Password Field
-                      _buildTextField(hint: 'Password', isPassword: true),
+                      _buildTextField(
+                        hint: 'Password',
+                        isPassword: true,
+                        controller: _passwordController,
+                      ),
 
                       const SizedBox(height: 10),
 
-                      // Remember Me & Forgot Password
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -138,7 +150,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // 4. Gradient Login Button
                       Container(
                         width: double.infinity,
                         height: 55,
@@ -146,23 +157,34 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(25),
                           gradient: const LinearGradient(
                             colors: [
-                              Color.fromARGB(
-                                255,
-                                251,
-                                161,
-                                207,
-                              ), // Pastel Pink/Peach
-                              Color.fromARGB(
-                                255,
-                                209,
-                                132,
-                                247,
-                              ), // Pastel Lilac/Blue
+                              Color.fromARGB(255, 251, 161, 207),
+                              Color.fromARGB(255, 209, 132, 247),
                             ],
                           ),
                         ),
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () async {
+
+                            final error = await _auth.login(
+                              email: _emailController.text.trim(),
+                              password: _passwordController.text.trim(),
+                            );
+
+                            if (error == null) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text("Login successful")),
+                                );
+                              }
+                            } else {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(content: Text(error)),
+                                );
+                              }
+                            }
+
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
@@ -182,7 +204,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 25),
 
-                      // Social Login Section
                       const Text(
                         'Sign in with',
                         style: TextStyle(color: Colors.black26, fontSize: 12),
@@ -209,8 +230,13 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField({required String hint, bool isPassword = false}) {
+  Widget _buildTextField({
+    required String hint,
+    bool isPassword = false,
+    required TextEditingController controller,
+  }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,

@@ -4,6 +4,7 @@ final supabase = Supabase.instance.client;
 
 class AuthService {
 
+  /// SIGN UP USER + UPDATE PROFILE
   Future<String?> signUp({
     required String email,
     required String password,
@@ -12,7 +13,6 @@ class AuthService {
     required String year,
   }) async {
     try {
-      // Step 1: Create auth account
       final res = await supabase.auth.signUp(
         email: email,
         password: password,
@@ -21,17 +21,39 @@ class AuthService {
       final user = res.user;
       if (user == null) return "Signup failed";
 
-      // Step 2: Update profile (trigger already created empty row)
       await supabase.from('profiles').update({
         'name': name,
         'department': dept,
         'year': year,
       }).eq('id', user.id);
 
-      return null; // success
+      return null;
     } catch (e) {
       return e.toString();
     }
   }
 
+  /// LOGIN USER
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      return null;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// LOGOUT USER
+  Future<void> logout() async {
+    await supabase.auth.signOut();
+  }
+
+  /// GET CURRENT USER
+  User? get currentUser => supabase.auth.currentUser;
 }

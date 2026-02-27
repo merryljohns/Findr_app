@@ -33,17 +33,14 @@ class _HomePageScreenState extends State<HomePageScreen> {
   ];
 
   void _showAddItemDialog(BuildContext context) {
+    // These variables store the dialog state
     String selectedType = 'Lost';
-
-    // FIX FOR WEB: Store image as bytes for display
     Uint8List? webImage;
     XFile? pickedFile;
 
-    // Controllers to capture data for Supabase
     final titleController = TextEditingController();
     final descController = TextEditingController();
     final priceController = TextEditingController();
-    final categoryController = TextEditingController();
     final locationController = TextEditingController();
 
     showDialog(
@@ -59,7 +56,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 );
 
                 if (image != null) {
-                  // Read bytes so it displays on Chrome/Web
                   final bytes = await image.readAsBytes();
                   setDialogState(() {
                     pickedFile = image;
@@ -88,20 +84,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      DropdownButtonFormField<String>(
-                        value: selectedType,
-                        decoration: _dialogInputDecoration('Post as...'),
-                        items: ['Lost', 'Found', 'Resell'].map((String type) {
-                          return DropdownMenuItem(
-                            value: type,
-                            child: Text(type),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          setDialogState(() => selectedType = value!);
-                        },
-                      ),
-                      const SizedBox(height: 15),
+                      // 1. IMAGE PICKER REMAINS AT TOP
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: pickImageInsideDialog,
@@ -112,7 +95,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                             color: const Color(0xFFF8F8F8),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(color: Colors.black12, width: 1),
-                            // FIX: Use MemoryImage for Web compatibility
                             image: webImage != null
                                 ? DecorationImage(
                                     image: MemoryImage(webImage!),
@@ -124,27 +106,25 @@ class _HomePageScreenState extends State<HomePageScreen> {
                               ? const Column(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(
-                                      Icons.add_a_photo_outlined,
-                                      color: Color(0xFF8E7CFF),
-                                      size: 32,
-                                    ),
+                                    Icon(Icons.add_a_photo_outlined,
+                                        color: Color(0xFF8E7CFF), size: 32),
                                     SizedBox(height: 8),
-                                    Text(
-                                      'Upload Item Image',
-                                      style: TextStyle(
-                                        color: Colors.black45,
-                                        fontSize: 12,
-                                      ),
-                                    ),
+                                    Text('Upload Item Image',
+                                        style: TextStyle(
+                                            color: Colors.black45,
+                                            fontSize: 12)),
                                   ],
                                 )
                               : null,
                         ),
                       ),
                       const SizedBox(height: 15),
+
+                      // 2. TITLE FIELD
                       _dialogTextField('Title', Icons.title, titleController),
                       const SizedBox(height: 12),
+
+                      // 3. DESCRIPTION FIELD
                       _dialogTextField(
                         'Description',
                         Icons.description_outlined,
@@ -152,6 +132,27 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         maxLines: 3,
                       ),
                       const SizedBox(height: 12),
+
+                      // 4. THE DROPDOWN (Now replacing the Category Textfield)
+                      DropdownButtonFormField<String>(
+                        value: selectedType,
+                        decoration: _dialogInputDecoration('Category').copyWith(
+                          prefixIcon: const Icon(Icons.category_outlined,
+                              size: 20, color: Colors.black26),
+                        ),
+                        items: ['Lost', 'Found', 'Resell'].map((String type) {
+                          return DropdownMenuItem(
+                            value: type,
+                            child: Text(type),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setDialogState(() => selectedType = value!);
+                        },
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 5. CONDITIONAL FIELDS (Price or Location)
                       if (selectedType == 'Resell') ...[
                         _dialogTextField(
                           'Price',
@@ -160,12 +161,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                           isNumber: true,
                         ),
                       ] else ...[
-                        _dialogTextField(
-                          'Category',
-                          Icons.category_outlined,
-                          categoryController,
-                        ),
-                        const SizedBox(height: 12),
                         _dialogTextField(
                           'Location',
                           Icons.location_on_outlined,
@@ -180,46 +175,36 @@ class _HomePageScreenState extends State<HomePageScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Cancel',
-                    style: TextStyle(color: Colors.black45),
-                  ),
+                  child: const Text('Cancel',
+                      style: TextStyle(color: Colors.black45)),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // This is where you prepare your Supabase data
                     final postData = {
-                      'type': selectedType,
+                      'type':
+                          selectedType, // This now comes from your category dropdown
                       'title': titleController.text,
                       'description': descController.text,
                       'price': selectedType == 'Resell'
                           ? priceController.text
                           : null,
-                      'category': categoryController.text,
-                      'location': locationController.text,
-                      // 'image': webImage, // You'll need to upload this to Storage first
+                      'location': selectedType == 'Resell'
+                          ? null
+                          : locationController.text,
                     };
-
                     print("Ready for Supabase: $postData");
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF8E7CFF),
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 30,
-                      vertical: 12,
-                    ),
+                        horizontal: 30, vertical: 12),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
+                        borderRadius: BorderRadius.circular(15)),
                   ),
-                  child: const Text(
-                    'Post Now',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  child: const Text('Post Now',
+                      style: TextStyle(
+                          color: Colors.white, fontWeight: FontWeight.bold)),
                 ),
               ],
             );

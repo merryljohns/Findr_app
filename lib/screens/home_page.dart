@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/item_service.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -13,6 +14,7 @@ class HomePageScreen extends StatefulWidget {
 class _HomePageScreenState extends State<HomePageScreen> {
   int _currentIndex = 0;
   final ImagePicker _picker = ImagePicker();
+  final ItemService _itemService = ItemService(); // Instance of your service
 
   final List<Map<String, String>> cardData = [
     {
@@ -32,8 +34,151 @@ class _HomePageScreenState extends State<HomePageScreen> {
     },
   ];
 
+  // --- NEW UI METHODS FOR HORIZONTAL SCROLLING ---
+
+  Widget _buildHorizontalSection(String title, String category) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () {}, // Show All functionality
+                child: const Text(
+                  'Show All',
+                  style: TextStyle(
+                      color: Color(0xFF8E7CFF), fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 220,
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _itemService.fetchRecentTwoByCategory(category),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: CircularProgressIndicator(color: Color(0xFF8E7CFF)));
+              }
+
+              final items = snapshot.data ?? [];
+              if (items.isEmpty) {
+                return const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 24),
+                  child: Text("No items posted yet.",
+                      style: TextStyle(color: Colors.black26)),
+                );
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                scrollDirection: Axis.horizontal,
+                itemCount: items.length,
+                itemBuilder: (context, index) {
+                  final item = items[index];
+                  // Alternating between pastel purple (even) and pastel pink (odd)
+                  final bool isPurple = index % 2 == 0;
+
+                  return Container(
+                    width: 180,
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: isPurple
+                          ? const Color(0xFFF3EFFF)
+                          : const Color(0xFFFFF0F6),
+                      borderRadius: BorderRadius.circular(25),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.02),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // IMAGE DISPLAY
+                        Expanded(
+                          flex: 3,
+                          child: ClipRRect(
+                            borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(25)),
+                            child: item['image_url'] != null &&
+                                    item['image_url'].toString().isNotEmpty
+                                ? Image.network(
+                                    item['image_url'],
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                                color: Colors.black12,
+                                                child: const Icon(
+                                                    Icons.broken_image,
+                                                    color: Colors.white)),
+                                  )
+                                : Container(
+                                    color: Colors.black12,
+                                    child: const Icon(Icons.image,
+                                        color: Colors.white),
+                                  ),
+                          ),
+                        ),
+                        // TEXT CONTENT
+                        Expanded(
+                          flex: 2,
+                          child: Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item['title'] ?? 'Untitled',
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  item['description'] ?? '',
+                                  style: const TextStyle(
+                                      fontSize: 11, color: Colors.black54),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- REST OF YOUR ORIGINAL UI METHODS ---
+
   void _showAddItemDialog(BuildContext context) {
-    // These variables store the dialog state
     String selectedType = 'Lost';
     Uint8List? webImage;
     XFile? pickedFile;
@@ -84,7 +229,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 1. IMAGE PICKER REMAINS AT TOP
                       GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: pickImageInsideDialog,
@@ -119,12 +263,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         ),
                       ),
                       const SizedBox(height: 15),
-
-                      // 2. TITLE FIELD
                       _dialogTextField('Title', Icons.title, titleController),
                       const SizedBox(height: 12),
-
-                      // 3. DESCRIPTION FIELD
                       _dialogTextField(
                         'Description',
                         Icons.description_outlined,
@@ -132,8 +272,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         maxLines: 3,
                       ),
                       const SizedBox(height: 12),
-
-                      // 4. THE DROPDOWN (Now replacing the Category Textfield)
                       DropdownButtonFormField<String>(
                         value: selectedType,
                         decoration: _dialogInputDecoration('Category').copyWith(
@@ -151,8 +289,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         },
                       ),
                       const SizedBox(height: 12),
-
-                      // 5. CONDITIONAL FIELDS (Price or Location)
                       if (selectedType == 'Resell') ...[
                         _dialogTextField(
                           'Price',
@@ -181,8 +317,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 ElevatedButton(
                   onPressed: () {
                     final postData = {
-                      'type':
-                          selectedType, // This now comes from your category dropdown
+                      'type': selectedType,
                       'title': titleController.text,
                       'description': descController.text,
                       'price': selectedType == 'Resell'
@@ -214,8 +349,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
-  // --- UI Helper Methods (Kept exactly as you had them) ---
-
   InputDecoration _dialogInputDecoration(String label) {
     return InputDecoration(
       labelText: label,
@@ -230,7 +363,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
     );
   }
 
-  // Updated to include Controller
   Widget _dialogTextField(
     String hint,
     IconData icon,
@@ -250,7 +382,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Scaffold remains unchanged...
     return Scaffold(
       backgroundColor: const Color(0xFFFDFBFF),
       body: SafeArea(
@@ -329,6 +460,12 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
+
+              // --- ADDED HORIZONTAL SCROLLING SECTIONS ---
+              _buildHorizontalSection('Lost Items', 'lost'),
+              _buildHorizontalSection('Found Items', 'Found'),
+              _buildHorizontalSection('Resell Items', 'Resell'),
+
               const SizedBox(height: 100),
             ],
           ),

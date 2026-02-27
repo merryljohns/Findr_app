@@ -3,7 +3,6 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 final supabase = Supabase.instance.client;
 
 class ItemService {
-
   Future<String?> createItem({
     required String title,
     required String description,
@@ -48,5 +47,27 @@ class ItemService {
         .order('created_at', ascending: false);
 
     return List<Map<String, dynamic>>.from(res);
+  }
+
+  // --- NEW ADDITION ---
+
+  /// Fetches only the 2 most recent items for a specific category.
+  /// Optimized to return only the fields needed for the Home Page cards.
+  Future<List<Map<String, dynamic>>> fetchRecentTwoByCategory(
+      String category) async {
+    try {
+      final res = await supabase
+          .from('items')
+          .select('title, description, image_url')
+          .eq('category', category)
+          .order('created_at', ascending: false)
+          .limit(2);
+
+      print("Fetched $category: ${res.length} items found"); // Add this line
+      return List<Map<String, dynamic>>.from(res);
+    } catch (e) {
+      print("Error fetching $category: $e");
+      return [];
+    }
   }
 }

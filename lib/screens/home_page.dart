@@ -2,12 +2,11 @@ import 'dart:io';
 import 'package:findr_app/screens/Found_screen.dart';
 import 'package:findr_app/screens/Lost_screen.dart';
 import 'package:findr_app/screens/Resell_screen.dart';
-import 'package:flutter/foundation.dart'; // Required for kIsWeb
+import 'package:findr_app/screens/profile_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/item_service.dart';
-// Import your screens here
-// import 'login_screen.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -19,8 +18,43 @@ class HomePageScreen extends StatefulWidget {
 class _HomePageScreenState extends State<HomePageScreen> {
   int _currentIndex = 0;
   final ImagePicker _picker = ImagePicker();
-  final ItemService _itemService = ItemService(); // Instance of your service
-  
+  final ItemService _itemService = ItemService();
+
+  // Variables to store the futures so they don't reload on setState
+  late Future<List<Map<String, dynamic>>> _lostFuture;
+  late Future<List<Map<String, dynamic>>> _foundFuture;
+  late Future<List<Map<String, dynamic>>> _resellFuture;
+
+  // Variable to store the user's name
+  String _userName = "User";
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize futures once
+    _lostFuture = _itemService.fetchRecentTwoByCategory('lost');
+    _foundFuture = _itemService.fetchRecentTwoByCategory('found');
+    _resellFuture = _itemService.fetchRecentTwoByCategory('resell');
+
+    // Fetch the user name
+    _loadUserData();
+  }
+
+  // Logic to fetch user name from your service
+  Future<void> _loadUserData() async {
+    try {
+      // Assuming your ItemService or an AuthService has a method like getProfile
+      // Adjust 'item_service.dart' if the method name is different
+      final userData = await _itemService.getUserProfile();
+      if (userData != null && userData['name'] != null) {
+        setState(() {
+          _userName = userData['name'];
+        });
+      }
+    } catch (e) {
+      debugPrint("Error loading user data: $e");
+    }
+  }
 
   final List<Map<String, String>> cardData = [
     {
@@ -40,9 +74,16 @@ class _HomePageScreenState extends State<HomePageScreen> {
     },
   ];
 
-  // --- NEW UI METHODS FOR HORIZONTAL SCROLLING ---
-
   Widget _buildHorizontalSection(String title, String category) {
+    Future<List<Map<String, dynamic>>> targetFuture;
+    if (category == 'lost') {
+      targetFuture = _lostFuture;
+    } else if (category == 'found') {
+      targetFuture = _foundFuture;
+    } else {
+      targetFuture = _resellFuture;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -57,7 +98,21 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () {}, // Show All functionality
+                onPressed: () {
+                  Widget targetScreen;
+                  if (category == 'lost') {
+                    targetScreen = const LostScreen();
+                  } else if (category == 'found') {
+                    targetScreen = const FoundScreen();
+                  } else {
+                    targetScreen = const ResellScreen();
+                  }
+
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => targetScreen),
+                  );
+                },
                 child: const Text(
                   'Show All',
                   style: TextStyle(
@@ -70,7 +125,7 @@ class _HomePageScreenState extends State<HomePageScreen> {
         SizedBox(
           height: 220,
           child: FutureBuilder<List<Map<String, dynamic>>>(
-            future: _itemService.fetchRecentTwoByCategory(category),
+            future: targetFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
@@ -92,7 +147,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 itemCount: items.length,
                 itemBuilder: (context, index) {
                   final item = items[index];
-                  // Alternating between pastel purple (even) and pastel pink (odd)
                   final bool isPurple = index % 2 == 0;
 
                   return Container(
@@ -115,7 +169,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // IMAGE DISPLAY
                         Expanded(
                           flex: 3,
                           child: ClipRRect(
@@ -142,7 +195,6 @@ class _HomePageScreenState extends State<HomePageScreen> {
                                   ),
                           ),
                         ),
-                        // TEXT CONTENT
                         Expanded(
                           flex: 2,
                           child: Padding(
@@ -340,6 +392,14 @@ class _HomePageScreenState extends State<HomePageScreen> {
                           const SnackBar(
                               content: Text("Post created successfully")),
                         );
+                        setState(() {
+                          _lostFuture =
+                              _itemService.fetchRecentTwoByCategory('lost');
+                          _foundFuture =
+                              _itemService.fetchRecentTwoByCategory('found');
+                          _resellFuture =
+                              _itemService.fetchRecentTwoByCategory('resell');
+                        });
                         Navigator.pop(context);
                       }
                     } else {
@@ -418,11 +478,11 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Good Morning,',
+                          'Lets track it down.',
                           style: TextStyle(fontSize: 14, color: Colors.black54),
                         ),
                         Text(
-                          'Hello User!',
+                          'Hello $_userName!', // Updated greeting
                           style: TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -431,10 +491,20 @@ class _HomePageScreenState extends State<HomePageScreen> {
                         ),
                       ],
                     ),
-                    const CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Color(0xFFDED8FF),
-                      child: Icon(Icons.person, color: Colors.white, size: 30),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => const ProfileScreen()),
+                        );
+                      },
+                      child: const CircleAvatar(
+                        radius: 28,
+                        backgroundColor: Color(0xFFDED8FF),
+                        child:
+                            Icon(Icons.person, color: Colors.white, size: 30),
+                      ),
                     ),
                   ],
                 ),
@@ -480,12 +550,9 @@ class _HomePageScreenState extends State<HomePageScreen> {
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
               ),
-
-              // --- HORIZONTAL SCROLLING SECTIONS ---
               _buildHorizontalSection('Lost Items', 'lost'),
               _buildHorizontalSection('Found Items', 'found'),
               _buildHorizontalSection('Resell Items', 'resell'),
-
               const SizedBox(height: 100),
             ],
           ),
@@ -506,15 +573,12 @@ class _HomePageScreenState extends State<HomePageScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _navItem(Icons.home_rounded, 'Home', true, () {
-              // Action for Home
-            }),
+            _navItem(Icons.home_rounded, 'Home', true, () {}),
             _navItem(Icons.search_off_rounded, 'Lost', false, () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const LostScreen()),
               );
-              // Action for Lost - Navigate to your screen
             }),
             const SizedBox(width: 40),
             _navItem(Icons.inventory_2_outlined, 'Found', false, () {
@@ -522,14 +586,12 @@ class _HomePageScreenState extends State<HomePageScreen> {
                 context,
                 MaterialPageRoute(builder: (context) => const FoundScreen()),
               );
-              // Action for Found
             }),
             _navItem(Icons.sell_outlined, 'Resell', false, () {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ResellScreen()),
               );
-              // Action for Resell
             }),
           ],
         ),

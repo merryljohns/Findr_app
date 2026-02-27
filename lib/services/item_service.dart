@@ -7,25 +7,23 @@ class ItemService {
   // --- NEW ADDITION: Fetch User Profile ---
 
   /// Fetches the current logged-in user's profile data (like their name).
-  /// This assumes you have a table named 'profiles' that links to the auth user.
   Future<Map<String, dynamic>?> getUserProfile() async {
-    try {
-      final user = supabase.auth.currentUser;
-      if (user == null) return null;
+  try {
+    final user = supabase.auth.currentUser;
+    if (user == null) return null;
 
-      final res = await supabase
-          .from('profiles') // Adjust this to your actual profile table name
-          .select('name')
-          .eq('id', user.id)
-          .single();
+    final res = await supabase
+        .from('profiles')
+        .select('*') // Changed 'name' to '*' to get all fields
+        .eq('id', user.id)
+        .single();
 
-      return res;
-    } catch (e) {
-      print("Error fetching user profile: $e");
-      return null;
-    }
+    return res;
+  } catch (e) {
+    print("Error fetching user profile: $e");
+    return null;
   }
-
+}
   // --- EXISTING METHODS ---
 
   Future<String?> createItem({
@@ -75,6 +73,7 @@ class ItemService {
       return null;
     }
   }
+  
 
   Future<List<Map<String, dynamic>>> fetchItems() async {
     final res = await supabase

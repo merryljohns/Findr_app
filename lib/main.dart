@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'screens/get_started.dart';
 
 void main() {
   runApp(const FindrApp());
+=======
+import 'services/supabase_service.dart';
+import 'screens/login_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.initialize();
+
+  runApp(const MyApp());
+>>>>>>> d4c15df (backend)
 }
 
 class FindrApp extends StatelessWidget {
@@ -17,6 +28,7 @@ class FindrApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Findr',
+<<<<<<< HEAD
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: seedColor),
         useMaterial3: true,
@@ -38,3 +50,9 @@ class FindrApp extends StatelessWidget {
     );
   }
 }
+=======
+      home: const LoginScreen(),
+    );
+  }
+}
+>>>>>>> d4c15df (backend)

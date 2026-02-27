@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'services/supabase_service.dart';
 import 'screens/get_started.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'screens/home_page.dart';   // adjust path if folder name differs
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,7 +39,9 @@ class FindrApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const GetStartedScreen(),
+      home: Supabase.instance.client.auth.currentUser == null
+    ? const GetStartedScreen()
+    : const HomePageScreen(),
     );
   }
 }

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'services/supabase_service.dart';
 import 'screens/get_started.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.initialize();
   runApp(const FindrApp());
 }
 
@@ -10,8 +13,6 @@ class FindrApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Define the primary purple/blue from the image as the seed color for Material 3.
-    // The specific hex from the buttons is roughly #814FEF or similar.
     final Color seedColor = const Color(0xFF814FEF);
 
     return MaterialApp(
@@ -20,7 +21,6 @@ class FindrApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: seedColor),
         useMaterial3: true,
-        // Optional: Custom text theme to match the clean font style in the image.
         textTheme: const TextTheme(
           headlineMedium: TextStyle(
             fontSize: 28,
@@ -30,8 +30,11 @@ class FindrApp extends StatelessWidget {
           bodyMedium: TextStyle(
             fontSize: 14,
             color: Color(0xFF555555),
-          ), // Gray body text
-          titleSmall: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+          titleSmall: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
       home: const GetStartedScreen(),

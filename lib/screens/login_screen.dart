@@ -1,5 +1,6 @@
-import 'package:findr_app/screens/home_page.dart';
 import 'package:flutter/material.dart';
+import 'package:findr_app/screens/home_page.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -10,32 +11,39 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _rememberMe = false;
+  bool _isLoading = false; // Added to handle button state
+
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final AuthService _auth = AuthService();
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
-          // 1. Diagonal Gradient Background
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color.fromARGB(255, 212, 142, 248), // Pastel Lilac/Blue
+                  Color.fromARGB(255, 212, 142, 248),
                   Color.fromARGB(255, 251, 161, 207),
-                  // Pastel Pink/Peach
                 ],
               ),
             ),
           ),
-
-          // 2. Main Content
           SafeArea(
             child: Column(
               children: [
-                // Custom Back Button
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Align(
@@ -54,9 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                 ),
-
-                const Spacer(), // Pushes the white container to the bottom
-                // 3. White Container with Rounded Edges
+                const Spacer(),
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(
@@ -88,17 +94,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         style: TextStyle(color: Colors.black54, height: 1.4),
                       ),
                       const SizedBox(height: 30),
-
-                      // Email Field
-                      _buildTextField(hint: 'Enter email'),
+                      _buildTextField(
+                        hint: 'Enter email',
+                        controller: _emailController,
+                      ),
                       const SizedBox(height: 15),
-
-                      // Password Field
-                      _buildTextField(hint: 'Password', isPassword: true),
-
+                      _buildTextField(
+                        hint: 'Password',
+                        isPassword: true,
+                        controller: _passwordController,
+                      ),
                       const SizedBox(height: 10),
-
-                      // Remember Me & Forgot Password
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -138,8 +144,6 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-
-                      // 4. Gradient Login Button
                       Container(
                         width: double.infinity,
                         height: 55,
@@ -147,30 +151,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(25),
                           gradient: const LinearGradient(
                             colors: [
-                              Color.fromARGB(
-                                255,
-                                251,
-                                161,
-                                207,
-                              ), // Pastel Pink/Peach
-                              Color.fromARGB(
-                                255,
-                                209,
-                                132,
-                                247,
-                              ), // Pastel Lilac/Blue
+                              Color.fromARGB(255, 251, 161, 207),
+                              Color.fromARGB(255, 209, 132, 247),
                             ],
                           ),
                         ),
                         child: ElevatedButton(
-                          onPressed: () {
-                            //Navigates to the Home Page
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (context) => const HomePageScreen(),
-                              ),
-                            );
-                          },
+                          onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,
@@ -178,19 +165,26 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(25),
                             ),
                           ),
-                          child: const Text(
-                            'Log In',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Log In',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 25),
-
-                      // Social Login Section
                       const Text(
                         'Sign in with',
                         style: TextStyle(color: Colors.black26, fontSize: 12),
@@ -217,8 +211,42 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildTextField({required String hint, bool isPassword = false}) {
+  // LOGIC FOR NAVIGATION
+  Future<void> _handleLogin() async {
+    setState(() => _isLoading = true);
+
+    final error = await _auth.login(
+      email: _emailController.text.trim(),
+      password: _passwordController.text.trim(),
+    );
+
+    if (!mounted) return;
+
+    if (error == null) {
+      // SUCCESS: Replace login screen with Home page
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomePageScreen()),
+      );
+    } else {
+      // FAILURE: Show snackbar with error
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
+
+  Widget _buildTextField({
+    required String hint,
+    bool isPassword = false,
+    required TextEditingController controller,
+  }) {
     return TextField(
+      controller: controller,
       obscureText: isPassword,
       decoration: InputDecoration(
         hintText: hint,

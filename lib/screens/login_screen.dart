@@ -164,12 +164,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         child: ElevatedButton(
                           onPressed: () {
-                            // Navigates to the Home Page
-                            //Navigator.of(context).push(
-                            //  MaterialPageRoute(
-                            //   builder: (context) => const HomePageScreen(),
-                            // ),
-                            // );
+                            //Navigates to the Home Page
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (context) => const HomePageScreen(),
+                              ),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,

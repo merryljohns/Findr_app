@@ -61,7 +61,7 @@ class _GetStartedScreenState extends State<GetStartedScreen> {
                   size: 180,
                   color: Color.fromARGB(255, 231, 108, 179),
                 ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 50),
                 //const Spacer(),
 
                 // --- Buttons Section ---

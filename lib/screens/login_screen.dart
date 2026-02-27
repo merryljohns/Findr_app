@@ -1,3 +1,4 @@
+import 'package:findr_app/screens/home_page.dart';
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -162,7 +163,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         child: ElevatedButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            // Navigates to the Home Page
+                            //Navigator.of(context).push(
+                            //  MaterialPageRoute(
+                            //   builder: (context) => const HomePageScreen(),
+                            // ),
+                            // );
+                          },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.transparent,
                             shadowColor: Colors.transparent,

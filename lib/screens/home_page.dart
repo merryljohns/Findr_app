@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart'; // Required for kIsWeb
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../services/item_service.dart';
 
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
@@ -179,22 +180,39 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       style: TextStyle(color: Colors.black45)),
                 ),
                 ElevatedButton(
-                  onPressed: () {
-                    final postData = {
-                      'type':
-                          selectedType, // This now comes from your category dropdown
-                      'title': titleController.text,
-                      'description': descController.text,
-                      'price': selectedType == 'Resell'
-                          ? priceController.text
-                          : null,
-                      'location': selectedType == 'Resell'
-                          ? null
-                          : locationController.text,
-                    };
-                    print("Ready for Supabase: $postData");
-                    Navigator.pop(context);
-                  },
+                 onPressed: () async {
+
+  final category = selectedType.toLowerCase(); 
+  String? imageUrl;
+  if (pickedFile != null) {
+    imageUrl = await ItemService().uploadImage(pickedFile!);
+  }// lost/found/resell
+
+  print("UPLOADED URL: $imageUrl");
+  
+  final error = await ItemService().createItem(
+    title: titleController.text.trim(),
+    description: descController.text.trim(),
+    category: category,
+    location: locationController.text.trim(),
+    imageUrl: imageUrl,
+  );
+
+  if (error == null) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Post created successfully")),
+      );
+      Navigator.pop(context);
+    }
+  } else {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error)),
+      );
+    }
+  }
+},
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF8E7CFF),
                     padding: const EdgeInsets.symmetric(

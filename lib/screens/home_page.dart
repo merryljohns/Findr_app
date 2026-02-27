@@ -481,8 +481,8 @@ class _HomePageScreenState extends State<HomePageScreen> {
 
               // --- ADDED HORIZONTAL SCROLLING SECTIONS ---
               _buildHorizontalSection('Lost Items', 'lost'),
-              _buildHorizontalSection('Found Items', 'Found'),
-              _buildHorizontalSection('Resell Items', 'Resell'),
+              _buildHorizontalSection('Found Items', 'found'),
+              _buildHorizontalSection('Resell Items', 'resell'),
 
               const SizedBox(height: 100),
             ],

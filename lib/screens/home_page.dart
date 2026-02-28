@@ -7,8 +7,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/item_service.dart';
-
-
+import '../screens/chat_screen.dart';
+import '../screens/saved_screen.dart';
 class HomePageScreen extends StatefulWidget {
   const HomePageScreen({super.key});
 
@@ -379,37 +379,147 @@ class _HomePageScreenState extends State<HomePageScreen> {
                       imageUrl = await ItemService().uploadImage(pickedFile!);
                     }
 
-                    final error = await ItemService().createItem(
-                      title: titleController.text.trim(),
-                      description: descController.text.trim(),
-                      category: category,
-                      location: locationController.text.trim(),
-                      imageUrl: imageUrl,
-                    );
+                    final newItem = await ItemService().createItem(
+  title: titleController.text.trim(),
+  description: descController.text.trim(),
+  category: category,
+  location: locationController.text.trim(),
+  imageUrl: imageUrl,
+);
 
-                    if (error == null) {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text("Post created successfully")),
-                        );
-                        setState(() {
-                          _lostFuture =
-                              _itemService.fetchRecentTwoByCategory('lost');
-                          _foundFuture =
-                              _itemService.fetchRecentTwoByCategory('found');
-                          _resellFuture =
-                              _itemService.fetchRecentTwoByCategory('resell');
-                        });
-                        Navigator.pop(context);
-                      }
-                    } else {
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(error)),
-                        );
-                      }
-                    }
+if (newItem != null) {
+
+await Future.delayed(const Duration(milliseconds: 400));
+
+final matches = await _itemService.findMatches(
+  descController.text.trim(),
+  newItem['id'], 
+);
+
+  if (context.mounted) {
+    Navigator.pop(context); // close Add Item dialog first
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Post created successfully")),
+    );
+
+    setState(() {
+      _lostFuture = _itemService.fetchRecentTwoByCategory('lost');
+      _foundFuture = _itemService.fetchRecentTwoByCategory('found');
+      _resellFuture = _itemService.fetchRecentTwoByCategory('resell');
+    });
+
+    // show matches AFTER dialog closes
+    if (matches.isNotEmpty) {
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      showDialog(
+        context: this.context,
+        builder: (context) {
+          return AlertDialog(
+            title: const Text("Possible matches found"),
+            content: SizedBox(
+              width: double.maxFinite,
+              child: ListView.builder(
+                shrinkWrap: true,
+                itemCount: matches.length,
+                itemBuilder: (context, index) {
+                  final item = matches[index];
+
+                  return InkWell(
+                    onTap: () {
+                      Navigator.pop(context);
+
+                      showDialog(
+                        context: this.context,
+                        builder: (context) {
+                          return AlertDialog(
+                            title: Text(item['title'] ?? 'Item'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (item['image_url'] != null)
+                                  Image.network(item['image_url']),
+                                const SizedBox(height: 10),
+                                Text(item['description'] ?? ''),
+                                const SizedBox(height: 10),
+                                Text("Location: ${item['location'] ?? ''}"),
+                              ],
+                            ),
+                            actions: [
+                              TextButton(
+  onPressed: () {
+    Navigator.pop(context); // close the item dialog
+
+    Navigator.push(
+      this.context,
+      MaterialPageRoute(
+        builder: (_) => ChatScreen(
+          itemId: item['id'],
+          itemName: item['title'] ?? 'Item',
+          receiverId: item['user_id'],
+          price: item['price']?.toString(),
+        ),
+      ),
+    );
+  },
+  child: const Text("Chat"),
+),
+TextButton(
+  onPressed: () async {
+    await supabase.from('saved_matches').insert({
+      'user_id': supabase.auth.currentUser!.id,
+      'item_id': item['id'],
+    });
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(this.context).showSnackBar(
+        const SnackBar(content: Text("Match saved")),
+      );
+    }
+  },
+  child: const Text("Save"),
+),
+                            ],
+                          );
+                        },
+                      );
+                    },
+                    child: ListTile(
+                      leading: item['image_url'] != null
+                          ? Image.network(
+                              item['image_url'],
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                            )
+                          : const Icon(Icons.image),
+                      title: Text(item['title'] ?? 'Item'),
+                      subtitle: Text(item['description'] ?? ''),
+                    ),
+                  );
+                },
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Close"),
+              ),
+            ],
+          );
+        },
+      );
+    }
+  }
+
+} else {
+  if (context.mounted) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("Failed to create post")),
+    );
+  }
+}
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF8E7CFF),
@@ -507,6 +617,15 @@ class _HomePageScreenState extends State<HomePageScreen> {
                             Icon(Icons.person, color: Colors.white, size: 30),
                       ),
                     ),
+                    IconButton(
+  icon: const Icon(Icons.bookmark_border),
+  onPressed: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const SavedScreen()),
+    );
+  },
+),
                   ],
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/item_service.dart';
+import '../screens/chat_screen.dart';
 
 class SavedScreen extends StatelessWidget {
   const SavedScreen({super.key});
@@ -26,12 +27,28 @@ class SavedScreen extends StatelessWidget {
             itemBuilder: (context, i) {
               final item = items[i];
               return ListTile(
-                leading: item['image_url'] != null
-                    ? Image.network(item['image_url'], width: 50, height: 50, fit: BoxFit.cover)
-                    : const Icon(Icons.image),
-                title: Text(item['title'] ?? ''),
-                subtitle: Text(item['description'] ?? ''),
-              );
+  leading: item['image_url'] != null
+      ? Image.network(item['image_url'], width: 50, height: 50, fit: BoxFit.cover)
+      : const Icon(Icons.image),
+  title: Text(item['title'] ?? ''),
+  subtitle: Text(item['description'] ?? ''),
+  trailing: IconButton(
+    icon: const Icon(Icons.chat_bubble_outline),
+    onPressed: () {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatScreen(
+            itemId: item['id'],
+            itemName: item['title'] ?? 'Item',
+            receiverId: item['user_id'],
+            price: item['price']?.toString(),
+          ),
+        ),
+      );
+    },
+  ),
+);
             },
           );
         },
